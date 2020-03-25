@@ -1,0 +1,37 @@
+id: nightly_inventory
+schedule: "0 0 2 * * ?"
+maxParallelism: 3
+tasks:
+  - id: extract_pos
+    type: http
+    url: http://pos-export/api/exports?date={{ ds }}
+    retries: 3
+    retryDelay: 2m
+  - id: extract_wms
+    type: http
+    url: http://wms-export/api/snapshots?date={{ ds }}
+    retries: 3
+    retryDelay: 2m
+  - id: load_staging
+    type: sql
+    dependsOn: [extract_pos, extract_wms]
+    sql: >
+      DELETE FROM stg_inventory WHERE ds = '{{ ds }}';
+      INSERT INTO stg_inventory SELECT * FROM ext_inventory WHERE ds = '{{ ds }}'
+  - id: reconcile
+    type: sql
+    dependsOn: [load_staging]
+    timeout: 30m
+    sql: >
+      DELETE FROM inventory_variance WHERE ds = '{{ ds }}';
+      INSERT INTO inventory_variance SELECT * FROM v_inventory_variance WHERE ds = '{{ ds }}'
+  - id: publish_report
+    type: http
+    dependsOn: [reconcile]
+    url: http://reports/api/inventory/{{ ds_nodash }}/publish
+  - id: page_oncall
+    type: http
+    dependsOn: [reconcile]
+    triggerRule: one_failed
+    url: http://alerts/api/page
+    body: '{"dag":"nightly_inventory","ds":"{{ ds }}"}'
