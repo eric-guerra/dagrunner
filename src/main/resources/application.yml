@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/dagrunner
+    username: ${DB_USER:dagrunner}
+    password: ${DB_PASSWORD:dagrunner}
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: always
+    properties:
+      org.quartz.jobStore.isClustered: true
+      org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+      org.quartz.scheduler.instanceId: AUTO
+      org.quartz.threadPool.threadCount: 4
+
+dagrunner:
+  dag-dir: ${DAG_DIR:dags}
+  worker-threads: 16
