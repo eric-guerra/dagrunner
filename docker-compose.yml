@@ -1,0 +1,11 @@
+services:
+  postgres:
+    image: postgres:12
+    environment: { POSTGRES_DB: dagrunner, POSTGRES_USER: dagrunner, POSTGRES_PASSWORD: dagrunner }
+    ports: ["5432:5432"]
+  dagrunner:
+    build: .
+    environment: { DB_HOST: postgres, DAG_DIR: /dags }
+    volumes: ["./dags:/dags:ro"]
+    ports: ["8080:8080"]
+    depends_on: [postgres]
